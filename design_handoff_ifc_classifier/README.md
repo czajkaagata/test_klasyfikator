@@ -44,7 +44,13 @@ Bordered panel with a faint CAD-style grid background (repeating 32px linear-gra
 - Clicking empty space / deselecting returns scale to 1.
 
 ### Main area — List view
-Full-width table (white card, radius 12px, border) with columns: Element (name + type), GUID (monospace), Klasyfikacja (current → suggested), Pewność (%), Status badge, and inline **Akceptuj**/**Odrzuć** action buttons per row. Replaces the 3D viewport when "Lista" is toggled; detail panel is hidden in this mode since actions are inline.
+Full-width table (`table-layout:fixed`, white card, radius 12px, border) with columns: Element (name + type), GUID (monospace), Klasyfikacja (current → suggested), Pewność (%), Status badge, **Popraw klasyfikację** (dropdown of IFC types + inline "Zapisz" save button), and stacked **Akceptuj**/**Odrzuć** action buttons per row. All cells use `overflow:hidden` + ellipsis to stay within their fixed % column width — no horizontal scroll. Replaces the 3D viewport when "Lista" is toggled; detail panel is hidden in this mode since actions are inline.
+
+### Manual reclassification (dropdown + save)
+Independent of the accept/reject-suggestion flow: every element also has a **manual classification dropdown** (all IFC types) plus a **Zapisz** button, available both in the List-view table and in the Detail panel (3D view). This lets a reviewer pick the *correct* type directly (not just accept/reject the model's suggestion) and persist it as `manualType` + `savedManual: true` on that element. Accept/Reject and manual-save are separate, independent actions — both can be used on the same element.
+
+### Dashboard view (third tab in the 3D/Lista/Dashboard switch)
+File-level stats: 4 summary cards (total elements, pending, accepted, rejected), a horizontal bar chart of flagged-element counts per IFC type, a stacked verification-progress bar (accepted/rejected/pending proportions), average model confidence, and count of manually-saved reclassifications. All computed client-side from the `elements` array — in production these should be computed from the real per-file dataset (or fetched pre-aggregated from the backend for large models).
 
 ### Detail panel (320px, right side, only in 3D view when an element is selected)
 - Header "SZCZEGÓŁY ELEMENTU" + close (×) button.
@@ -65,9 +71,9 @@ Full-width table (white card, radius 12px, border) with columns: Element (name +
 ## State Management
 - `fileName: string|null`
 - `loading: boolean`
-- `elements: Array<{ id, type, name, current, suggested, confidence, guid, color, x, y, w, h, status: 'pending'|'accepted'|'rejected' }> | null` (null = no file loaded yet)
+- `elements: Array<{ id, type, name, current, suggested, confidence, guid, color, x, y, w, h, status: 'pending'|'accepted'|'rejected', manualType: string, savedManual: boolean }> | null` (null = no file loaded yet)
 - `selectedId: string|null`
-- `viewMode: '3d' | 'list'`
+- `viewMode: '3d' | 'list' | 'dashboard'`
 
 In the real app, `elements` should be populated from the backend classification API response instead of the hardcoded mock array, and `x/y/w/h/color` (used only for the schematic placeholder) should be replaced by real IFC element references/GUIDs the That Open Company viewer can select, isolate, and highlight/zoom to (its camera + fragment-highlighting APIs cover the zoom/dim/red-highlight behavior natively).
 
