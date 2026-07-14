@@ -1,0 +1,13 @@
+# baza danych IFC (surowe pliki .ifc, ~480 MB) - nie commitujemy
+IFCNetCoreIFC/
+IFCNetCoreIFC.zip
+reports/
+# srodowisko wirtualne
+.venv/
+
+# cache Pythona / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.csv
+*.html

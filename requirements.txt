@@ -1,0 +1,11 @@
+ifcopenshell==0.8.5
+numpy
+scipy
+pandas
+scikit-learn
+matplotlib
+seaborn
+joblib
+tqdm
+jupyter
+ipykernel
