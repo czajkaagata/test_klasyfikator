@@ -141,4 +141,44 @@ src/feature_engineering.py     the engineered feature set described above
 01_build_dataset.ipynb         dataset builder -> data/ifc_features.csv
 02_train_classifiers.ipynb     RF + MLP training/evaluation + overfitting diagnostics -> models/, reports/
 03_check_entity_types.ipynb    entity-type QA report -> data/entity_qa_report.csv
+backend/                       FastAPI service that scores a live-uploaded .ifc file with the trained model
+frontend/                      React + Three.js review app (real IFC 3D viewer, wired to backend/)
 ```
+
+## Review app (backend + frontend)
+
+A working implementation of the `design_handoff_ifc_classifier/` design: upload
+a real (multi-element) IFC model, get every Beam/Slab/Stair/Wall/`IfcBuildingElementProxy`
+element scored by the trained Random Forest, and review flagged elements in an
+actual 3D viewer (real geometry, not a schematic placeholder).
+
+**`backend/`** — FastAPI service (`backend/app.py`). Reuses `src/ifc_geometry.py`
+and `src/feature_engineering.py` unchanged; the only new piece is
+`iter_candidate_elements()` in `ifc_geometry.py`, which generalizes the
+single-element-per-file assumption of the training pipeline to a real model
+with many elements. `POST /api/classify` accepts an `.ifc` file and returns
+every candidate element with its stored type, the geometry-suggested type,
+confidence, and full class probabilities.
+
+```
+.venv\Scripts\uvicorn backend.app:app --reload --port 8000
+```
+
+**`frontend/`** — Vite + React + TypeScript, `@thatopen/components` /
+`@thatopen/components-front` (web-ifc + Fragments) for real in-browser IFC
+parsing and rendering. Top bar, sidebar of flagged elements, 3D / List /
+Dashboard views, and a detail panel with accept/reject + manual
+reclassification, matching `design_handoff_ifc_classifier/README.md`. Selecting
+an element highlights it in red in the real 3D model and zooms the camera to
+it (via `FragmentsManager.guidsToModelIdMap` + `Highlighter.highlightByID`).
+Review state (accepted/rejected/manual overrides) is currently client-side
+only — there's no persistence endpoint yet.
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+The dev server proxies `/api/*` to `http://127.0.0.1:8000` (see
+`frontend/vite.config.ts`), so run the backend first.

@@ -11,3 +11,7 @@ __pycache__/
 .ipynb_checkpoints/
 *.csv
 *.html
+
+# frontend (Vite/React)
+frontend/node_modules/
+frontend/dist/

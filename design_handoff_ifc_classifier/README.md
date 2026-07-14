@@ -1,5 +1,13 @@
 # Handoff: IFC Classifier Review Interface
 
+> **Implemented.** This design has been built for real in `../frontend/`
+> (Vite + React + `@thatopen/components`/web-ifc for actual 3D IFC rendering)
+> wired to `../backend/` (FastAPI serving the trained Random Forest from
+> `../models/`). See the root `README.md`, section "Review app (backend +
+> frontend)", for how to run it. The rest of this document is the original
+> design brief and still describes the intended interactions accurately;
+> known deviations from it are noted inline below.
+
 ## Overview
 Frontend for reviewing elements from an IFC model that a backend classification model flagged as potentially misclassified. User loads an IFC file, sees a 3D viewer with the model, a sidebar list of flagged elements, and — on selecting one — the camera moves to that element, the rest of the model dims, and the element is highlighted red. A detail panel shows the model's reasoning with accept/reject actions.
 
@@ -92,3 +100,13 @@ No external images. One emoji placeholder (📐) in the empty-state icon — rep
 
 ## Files
 - `IFC Classifier.dc.html` — full prototype (single-file Design Component; open directly in a browser to interact with it)
+
+## Known deviations in the implementation (`../frontend/`)
+- **Selection is one-directional.** Clicking a sidebar/list row selects and
+  highlights the element in the 3D view. Clicking directly on the 3D model to
+  select an element (the reverse direction) isn't wired up yet.
+- **Review state (accept/reject/manual reclassification) is client-side only**,
+  reset on reload — there's no backend endpoint to persist reviewer decisions.
+- The sidebar/list/dashboard only ever show elements where `mismatch: true`
+  (stored type ≠ geometry-predicted type) — matching this doc's framing of
+  `elements` as "flagged elements", not every element in the model.

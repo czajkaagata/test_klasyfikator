@@ -21,11 +21,38 @@ class Mesh:
 
 
 def get_single_element(ifc_file: ifcopenshell.file) -> ifcopenshell.entity_instance:
-    """Each IFCNetCoreIFC file contains exactly one IfcElement instance."""
+    """Each IFCNetCoreIFC training file contains exactly one IfcElement instance."""
     elements = ifc_file.by_type("IfcElement")
     if len(elements) != 1:
         raise ValueError(f"expected exactly 1 IfcElement, found {len(elements)}")
     return elements[0]
+
+
+# IFC entity types worth scoring with the Beam/Slab/Stair/Wall classifier: the
+# four target types themselves (plus their IFC2X3 "StandardCase" subtypes),
+# and the generic catch-all type IfcBuildingElementProxy models are often
+# exported with when the authoring tool didn't assign a proper class.
+CANDIDATE_TYPES = (
+    "IfcBeam",
+    "IfcSlab",
+    "IfcStair",
+    "IfcStairFlight",
+    "IfcWall",
+    "IfcWallStandardCase",
+    "IfcBuildingElementProxy",
+)
+
+
+def iter_candidate_elements(ifc_file: ifcopenshell.file):
+    """Yield every element in a (real, multi-element) IFC model whose stored
+    type makes it a plausible Beam/Slab/Stair/Wall candidate worth scoring."""
+    seen_ids: set[int] = set()
+    for ifc_type in CANDIDATE_TYPES:
+        for element in ifc_file.by_type(ifc_type):
+            if element.id() in seen_ids:
+                continue
+            seen_ids.add(element.id())
+            yield element
 
 
 def load_mesh(element: ifcopenshell.entity_instance) -> Mesh:
