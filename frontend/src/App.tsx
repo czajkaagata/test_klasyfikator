@@ -15,6 +15,7 @@ export default function App() {
 
   const [fileName, setFileName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [viewerLoading, setViewerLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ClassifyResponse | null>(null)
   const [review, setReview] = useState<Record<string, ReviewState>>({})
@@ -42,15 +43,21 @@ export default function App() {
     setSelectedGuid(null)
     setFileName(file.name)
 
+    // The 3D geometry load (WASM parse in-browser) runs independently and can be
+    // slow or occasionally hang on network/CDN issues — it must never block the
+    // classification results (sidebar/list/dashboard) from showing up.
+    setViewerLoading(true)
+    viewerRef.current
+      ?.loadFile(file)
+      .catch((err) => {
+        console.error(err)
+        const detail = err instanceof Error ? err.message : String(err)
+        setError((prev) => prev ?? `Nie udało się wczytać geometrii do widoku 3D: ${detail} (klasyfikacja mimo to działa — sprawdź widok Lista/Dashboard).`)
+      })
+      .finally(() => setViewerLoading(false))
+
     try {
-      const [classifyResult] = await Promise.all([
-        classifyIfc(file),
-        viewerRef.current?.loadFile(file).catch((err) => {
-          console.error(err)
-          const detail = err instanceof Error ? err.message : String(err)
-          setError((prev) => prev ?? `Nie udało się wczytać geometrii do widoku 3D: ${detail} (klasyfikacja mimo to działa — sprawdź widok Lista/Dashboard).`)
-        }),
-      ])
+      const classifyResult = await classifyIfc(file)
       setResult(classifyResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nieznany błąd klasyfikacji')
@@ -112,6 +119,12 @@ export default function App() {
           <div className="viewport-wrap" style={{ display: fileLoaded && !loading && viewMode === '3d' ? 'block' : 'none' }}>
             <IfcViewer ref={viewerRef} onError={setError} />
             <div className="viewport-watermark">IFC VIEWER — THAT OPEN COMPANY</div>
+            {viewerLoading && (
+              <div className="viewport-loading">
+                <div className="spinner" />
+                Wczytywanie geometrii 3D...
+              </div>
+            )}
           </div>
 
           {fileLoaded && !loading && viewMode === 'list' && (

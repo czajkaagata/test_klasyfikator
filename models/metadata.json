@@ -1,0 +1,59 @@
+{
+  "created_utc": "2026-07-28T06:00:02.997468+00:00",
+  "git_commit": "93a80d2",
+  "n_features": 39,
+  "classes": [
+    "Beam",
+    "Slab",
+    "Stair",
+    "Wall"
+  ],
+  "train_rows": 965,
+  "test_rows": 413,
+  "production_model": "random_forest",
+  "production_model_reason": "Not the top scorer on accuracy (Gradient Boosting is ~0.7pp higher) nor on Green IT efficiency (Logistic Regression and MLP train far faster per accuracy point, see green_it_comparison.csv) - kept as the deployed model in backend/app.py because it was already integrated there, gives built-in feature importances for interpretability, and its accuracy/inference cost is acceptable for this dataset size. Swapping to Gradient Boosting (higher accuracy, much slower to retrain) or Logistic Regression (cheaper, ~0.7pp lower accuracy) is a reasonable future option, documented in the Green IT section of 02_train_classifiers.ipynb.",
+  "test_accuracy": {
+    "Baseline": 0.35108958837772397,
+    "Logistic Regression": 0.9515738498789347,
+    "Random Forest": 0.9588377723970944,
+    "Gradient Boosting": 0.9661016949152542,
+    "MLP": 0.9346246973365617
+  },
+  "green_it": {
+    "test_accuracy": {
+      "Baseline": 0.35108958837772397,
+      "Logistic Regression": 0.9515738498789347,
+      "MLP": 0.9346246973365617,
+      "Random Forest": 0.9588377723970944,
+      "Gradient Boosting": 0.9661016949152542
+    },
+    "train_time_s": {
+      "Baseline": 0.0005818999925395474,
+      "Logistic Regression": 0.0283320000016829,
+      "MLP": 0.13893159999861382,
+      "Random Forest": 0.837247399991611,
+      "Gradient Boosting": 7.04812540000421
+    },
+    "inference_time_s": {
+      "Baseline": 0.0005435000057332218,
+      "Logistic Regression": 0.00038050000148359686,
+      "MLP": 0.0010380000021541491,
+      "Random Forest": 0.11047339999640826,
+      "Gradient Boosting": 0.003889200001140125
+    },
+    "model_size_kb": {
+      "Baseline": 0.7412109375,
+      "Logistic Regression": 2.2412109375,
+      "MLP": 120.4658203125,
+      "Random Forest": 2519.5244140625,
+      "Gradient Boosting": 970.4140625
+    },
+    "efficiency": {
+      "Baseline": 603.3503916119453,
+      "Logistic Regression": 33.586539948553295,
+      "MLP": 6.727229063408806,
+      "Random Forest": 1.1452263362140052,
+      "Gradient Boosting": 0.13707214898796738
+    }
+  }
+}

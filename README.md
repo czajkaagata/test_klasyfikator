@@ -28,19 +28,29 @@ the notebooks, rather than duplicated in cells.
    feature comparison table. This is not part of the production pipeline —
    it's meant to make the feature engineering in
    `src/feature_engineering.py` inspectable/explainable.
-1. **`01_build_dataset.ipynb`** — walks `IFCNetCoreIFC/{IfcBeam,IfcSlab,IfcStair,IfcWall}/{train,test}/*.ifc`,
+1. **`01_build_dataset.ipynb`** — walks `data/raw/IFCNetCoreIFC/{IfcBeam,IfcSlab,IfcStair,IfcWall}/{train,test}/*.ifc`,
    loads the single `IfcElement` in each file via `ifcopenshell.geom`, computes
-   geometric + engineered features (see below), and writes `data/ifc_features.csv`.
+   geometric + engineered features (see below), and writes `data/processed/ifc_features.csv`.
    Also records the entity type actually stored in the file (`stored_ifc_class`),
    separate from the ground-truth class implied by the folder (`label`).
-2. **`02_train_classifiers.ipynb`** — trains a `RandomForestClassifier` and an
-   `MLPClassifier` on the existing train/test split, saves models to `models/`
-   and metrics/plots to `reports/`, and runs an overfitting-diagnostics
-   section (train vs test accuracy, learning curves, RF validation curve
-   over `n_estimators`, MLP loss curve) — see below.
+2. **`02_train_classifiers.ipynb`** — trains and compares 5 models (Dummy
+   baseline, Logistic Regression, Random Forest, Gradient Boosting, MLP) on
+   the existing train/test split, tunes Random Forest with `GridSearchCV`,
+   saves models + `models/metadata.json` to `models/` and metrics/plots to
+   `reports/`, and runs an overfitting-diagnostics section (train vs test
+   accuracy, learning curves, RF validation curve over `n_estimators`, MLP
+   loss curve) plus a Green IT section comparing accuracy vs. train/inference
+   time and model size — see below.
 3. **`03_check_entity_types.ipynb`** — scores every element with the trained
-   Random Forest and writes `data/entity_qa_report.csv`, flagging elements
+   Random Forest and writes `data/processed/entity_qa_report.csv`, flagging elements
    where the stored IFC entity type disagrees with the geometry-predicted class.
+
+### Data layout
+
+```
+data/raw/IFCNetCoreIFC/    raw input .ifc files (gitignored, ~480 MB) — untouched by feature engineering
+data/processed/            output of the pipeline: ifc_features.csv, entity_qa_report.csv (gitignored)
+```
 
 Open them in Jupyter with the `ifc_test (.venv)` kernel (already registered),
 or re-run headless:
@@ -56,10 +66,19 @@ or re-run headless:
 
 | model | train accuracy | test accuracy |
 |---|---|---|
-| Random Forest | 99.9% | 95.9% |
+| Baseline (Dummy) | 35.5% | 35.1% |
 | MLP | 97.3% | 93.5% |
+| Logistic Regression | 96.3% | 95.2% |
+| Random Forest (production) | 99.9% | 95.9% |
+| Gradient Boosting | 100.0% | 96.6% |
 
-The ~4pp train/test gap is stable across training-set size (see
+Every real model clears the >90% success threshold and beats the baseline by
+>55pp. `GridSearchCV` on Random Forest (`n_estimators`, `max_depth`,
+`min_samples_leaf`, 5-fold CV) found a best CV score of 0.9658, essentially
+matching the manually-tuned model's test accuracy (0.9588) — see the tuning
+cell in `02_train_classifiers.ipynb`.
+
+The ~4pp train/test gap (RF) is stable across training-set size (see
 `reports/learning_curves.png`) and doesn't grow with more RF trees (see
 `reports/validation_curve_rf.png`) or more MLP epochs (see
 `reports/mlp_loss_curve.png`) — i.e. no sign of overfitting, just the
@@ -132,17 +151,65 @@ on the gravity-aware features, confirming they matter for these four classes.
 - `reports/roc_curves.png` — per-class ROC curves (one-vs-rest) on the test
   set; AUC ranges 0.96–1.00 across all four classes for both models.
 
+## Green IT
+
+`02_train_classifiers.ipynb` measures train time, inference time and
+serialized model size for every model (`reports/green_it_comparison.csv`,
+`reports/green_it_comparison.png`):
+
+| model | test acc. | train time | model size |
+|---|---|---|---|
+| Logistic Regression | 95.2% | 0.02 s | 2 KB |
+| MLP | 93.5% | 0.10 s | 120 KB |
+| Random Forest | 95.9% | 0.48 s | 2.5 MB |
+| Gradient Boosting | 96.6% | 4.23 s | 970 KB |
+
+Gradient Boosting is the most accurate but ~9x slower to train than Random
+Forest and ~215x slower than Logistic Regression for +0.7-1.4pp accuracy —
+not worth it here. Random Forest stays the production model (already
+integrated in `backend/app.py`, gives feature importances for
+interpretability) even though it's neither the most accurate nor the most
+efficient model — a conscious trade-off documented in
+`models/metadata.json` and the notebook's "Green IT" section. See
+`reports/prezentacja.html` (open directly in a browser, arrow-key/swipe
+navigation) for the full write-up (slides 10-11) — source content also kept
+as `reports/prezentacja.md`.
+
+## Testing
+
+```
+.venv\Scripts\pytest tests/ -v
+```
+
+`tests/test_ifc_geometry.py` and `tests/test_feature_engineering.py` check
+the geometry/feature math against a synthetic unit cube (no IFC data
+needed); `tests/test_backend_api.py` exercises the FastAPI endpoints
+(health, rejecting non-.ifc uploads, and — when `data/raw/IFCNetCoreIFC/` is present
+locally — classifying a real sample file).
+
+## Configuration
+
+`config.yaml` centralizes the parameters used across notebooks
+(`random_state`, model hyperparameters, the tuning grid) as a single
+reference point; the notebooks still set these values directly in cells so
+each one still runs standalone in Jupyter.
+
 ## Files
 
 ```
 src/ifc_geometry.py            mesh loading, volume/area/PCA/convex-hull/cross-section utilities
 src/feature_engineering.py     the engineered feature set described above
 00_feature_engineering.ipynb   step-by-step walkthrough of the feature formulas on example elements
-01_build_dataset.ipynb         dataset builder -> data/ifc_features.csv
-02_train_classifiers.ipynb     RF + MLP training/evaluation + overfitting diagnostics -> models/, reports/
-03_check_entity_types.ipynb    entity-type QA report -> data/entity_qa_report.csv
+01_build_dataset.ipynb         dataset builder + EDA -> data/processed/ifc_features.csv, reports/eda/
+02_train_classifiers.ipynb     5-model comparison, tuning, overfitting + Green IT diagnostics -> models/, reports/
+03_check_entity_types.ipynb    entity-type QA report -> data/processed/entity_qa_report.csv
 backend/                       FastAPI service that scores a live-uploaded .ifc file with the trained model
+backend/Dockerfile             container image for the backend service
 frontend/                      React + Three.js review app (real IFC 3D viewer, wired to backend/)
+tests/                         pytest suite (feature/geometry unit tests + backend API tests)
+config.yaml                    centralized parameters (random_state, model hyperparameters, tuning grid)
+reports/prezentacja.html       project presentation, browser slide deck (open directly, no server needed)
+reports/prezentacja.md         same content as plain Markdown (source / GitHub-readable)
 ```
 
 ## Review app (backend + frontend)
@@ -162,6 +229,14 @@ confidence, and full class probabilities.
 
 ```
 .venv\Scripts\uvicorn backend.app:app --reload --port 8000
+```
+
+Or via Docker (build context must be the repo root, since the image copies
+`src/` and `models/` too):
+
+```
+docker build -f backend/Dockerfile -t ifc-classifier .
+docker run -p 8000:8000 ifc-classifier
 ```
 
 **`frontend/`** — Vite + React + TypeScript, `@thatopen/components` /

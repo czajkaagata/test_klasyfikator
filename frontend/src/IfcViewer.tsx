@@ -127,16 +127,27 @@ const IfcViewer = forwardRef<IfcViewerHandle, { onError?: (msg: string) => void 
         const r = await readyPromiseRef.current
         if (disposedRef.current) return
         if (!guid) {
-          await r.highlighter.clear()
+          try {
+            await r.highlighter.clear()
+          } catch (err) {
+            console.error('clear highlight failed', err)
+          }
           await r.world.camera.fitToItems()
           return
         }
         const selected = await r.fragments.guidsToModelIdMap([guid])
         const all = await allItemsMap(r.fragments)
-        // dim the whole model except the selection, then highlight the
-        // selection on top without wiping the dim pass (removePrevious=false).
-        await r.highlighter.highlightByID(DIM_STYLE, all, true, false, selected)
-        await r.highlighter.highlightByID(FLAG_STYLE, selected, false, true)
+        try {
+          // dim the whole model except the selection, then highlight the
+          // selection on top without wiping the dim pass (removePrevious=false).
+          await r.highlighter.highlightByID(DIM_STYLE, all, true, false, selected)
+          await r.highlighter.highlightByID(FLAG_STYLE, selected, false, true)
+        } catch (err) {
+          // The highlighter can throw if its internal event map isn't ready yet
+          // (seen once during hot-reload); don't let it crash the review flow —
+          // the element is still selected/usable in the sidebar/list/detail panel.
+          console.error('highlight failed', err)
+        }
       },
     }))
 

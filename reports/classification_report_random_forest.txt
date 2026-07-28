@@ -1,0 +1,10 @@
+              precision    recall  f1-score   support
+
+        Beam      0.926     0.893     0.909        84
+        Slab      0.943     0.974     0.958       152
+       Stair      1.000     1.000     1.000        16
+        Wall      0.987     0.975     0.981       161
+
+    accuracy                          0.959       413
+   macro avg      0.964     0.960     0.962       413
+weighted avg      0.959     0.959     0.959       413

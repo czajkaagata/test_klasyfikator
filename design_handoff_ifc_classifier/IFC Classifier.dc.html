@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @font-face { font-family: 'Inter'; src: local('Inter'); }
+    body { margin: 0; background: oklch(98% 0.002 95); }
+    * { box-sizing: border-box; font-family: -apple-system, 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: oklch(88% 0.005 95); border-radius: 4px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    a { color: oklch(45% 0.16 25); text-decoration: none; }
+    a:hover { color: oklch(38% 0.18 25); text-decoration: underline; }
+  </style>
+</helmet>
+<div style="width:100%;height:100vh;display:flex;flex-direction:column;background:oklch(98% 0.002 95);color:oklch(20% 0.01 95);overflow:hidden">
+
+  <!-- TOP BAR -->
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid oklch(90% 0.005 95);background:#fff">
+    <div style="display:flex;align-items:center;gap:10px;flex:none">
+      <div style="width:28px;height:28px;border-radius:6px;background:oklch(20% 0.01 95);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.5px">IFC</div>
+      <div style="font-size:15px;font-weight:600">Klasyfikator elementów IFC</div>
+    </div>
+
+    <div style="width:1px;height:28px;background:oklch(90% 0.005 95);flex:none"></div>
+
+    <input type="file" accept=".ifc" ref="{{ fileInputRef }}" onChange="{{ onFileChosen }}" style="display:none" />
+    <button onClick="{{ triggerFileInput }}" style="flex:none;display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;border:1px solid oklch(20% 0.01 95);background:oklch(20% 0.01 95);color:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="opacity:0.85">
+      Załaduj model IFC
+    </button>
+
+    <sc-if value="{{ fileName }}">
+      <div style="font-size:13px;color:oklch(45% 0.01 95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">{{ fileName }}</div>
+    </sc-if>
+
+    <div style="flex:1"></div>
+
+    <sc-if value="{{ fileLoaded }}">
+      <div style="flex:none;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:16px;background:oklch(94% 0.05 25);color:oklch(45% 0.16 25);font-size:13px;font-weight:600">
+        <div style="width:7px;height:7px;border-radius:50%;background:oklch(55% 0.19 25)"></div>
+        {{ pendingCount }} podejrzanych elementów
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ fileLoaded }}">
+      <div style="flex:none;display:flex;background:oklch(95% 0.003 95);border-radius:8px;padding:3px;gap:2px">
+        <button onClick="{{ setView3d }}" style="border:none;background:{{ viewBtn3dBg }};color:{{ viewBtn3dColor }};font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer">3D</button>
+        <button onClick="{{ setViewList }}" style="border:none;background:{{ viewBtnListBg }};color:{{ viewBtnListColor }};font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer">Lista</button>
+        <button onClick="{{ setViewDashboard }}" style="border:none;background:{{ viewBtnDashBg }};color:{{ viewBtnDashColor }};font-size:13px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer">Dashboard</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- BODY -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- SIDEBAR -->
+    <div style="width:340px;flex:none;border-right:1px solid oklch(90% 0.005 95);background:#fff;display:flex;flex-direction:column;min-height:0">
+      <div style="padding:16px 16px 12px 16px;border-bottom:1px solid oklch(93% 0.005 95);flex:none">
+        <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:oklch(45% 0.01 95)">Podejrzane elementy</div>
+      </div>
+
+      <sc-if value="{{ fileLoaded }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow-y:auto;padding:8px">
+          <sc-for list="{{ elements }}" as="item" hint-placeholder-count="6">
+            <div onClick="{{ item.onSelect }}" style="cursor:pointer;padding:12px;border-radius:10px;margin-bottom:6px;background:{{ item.rowBg }};border:1px solid {{ item.rowBorder }};opacity:{{ item.rowOpacity }}" style-hover="background:oklch(96% 0.01 95)">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="width:26px;height:26px;border-radius:7px;background:{{ item.color }};flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:oklch(30% 0.02 95)">{{ item.abbr }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.name }}</div>
+                  <div style="font-size:11px;color:oklch(50% 0.01 95);font-family:monospace">{{ item.guidShort }}</div>
+                </div>
+                <sc-if value="{{ item.statusLabel }}">
+                  <div style="flex:none;font-size:10px;font-weight:700;padding:3px 7px;border-radius:10px;background:{{ item.statusBg }};color:{{ item.statusColor }}">{{ item.statusLabel }}</div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:6px">
+                <span style="color:oklch(50% 0.01 95)">{{ item.current }}</span>
+                <span style="color:oklch(70% 0.01 95)">→</span>
+                <span style="color:oklch(45% 0.16 25);font-weight:700">{{ item.suggested }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:4px;border-radius:2px;background:oklch(92% 0.005 95);overflow:hidden">
+                  <div style="height:100%;width:{{ item.confidence }}%;background:oklch(55% 0.19 25)"></div>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:oklch(45% 0.01 95);flex:none">{{ item.confidence }}%</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center">
+          <div style="font-size:13px;color:oklch(60% 0.01 95);line-height:1.5">Wczytaj model IFC, aby zobaczyć listę elementów oznaczonych przez model jako potencjalnie błędnie sklasyfikowane.</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div style="flex:1;position:relative;min-width:0;background:oklch(97% 0.002 95)">
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+          <div onClick="{{ triggerFileInput }}" style="cursor:pointer;width:420px;max-width:80%;padding:40px 32px;border-radius:16px;border:2px dashed oklch(85% 0.005 95);background:#fff;text-align:center" style-hover="border-color:oklch(70% 0.01 95)">
+            <div style="width:48px;height:48px;border-radius:12px;background:oklch(94% 0.003 95);margin:0 auto 16px auto;display:flex;align-items:center;justify-content:center;font-size:20px">📐</div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:6px">Przeciągnij plik IFC lub kliknij, aby załadować</div>
+            <div style="font-size:13px;color:oklch(55% 0.01 95)">Model zostanie przepuszczony przez klasyfikator elementów</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:oklch(97% 0.002 95)">
+          <div style="width:36px;height:36px;border-radius:50%;border:3px solid oklch(90% 0.005 95);border-top-color:oklch(55% 0.19 25);animation:spin 0.8s linear infinite"></div>
+          <div style="font-size:13px;color:oklch(50% 0.01 95)">Przetwarzanie modelu przez klasyfikator...</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ show3d }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;overflow:hidden">
+          <div style="position:absolute;inset:24px;border-radius:12px;border:1px solid oklch(90% 0.005 95);background:
+            repeating-linear-gradient(0deg, oklch(94% 0.003 95) 0px, oklch(94% 0.003 95) 1px, transparent 1px, transparent 32px),
+            repeating-linear-gradient(90deg, oklch(94% 0.003 95) 0px, oklch(94% 0.003 95) 1px, transparent 1px, transparent 32px),
+            #fdfdfc;overflow:hidden">
+
+            <div style="position:absolute;top:11px;right:16px;font-size:10px;font-family:monospace;letter-spacing:0.05em;color:oklch(75% 0.005 95)">IFC VIEWER — THAT OPEN COMPANY</div>
+
+            <div style="position:absolute;inset:0;transition:transform 0.7s cubic-bezier(.2,.7,.3,1);transform-origin:{{ cameraOrigin }};transform:{{ cameraTransform }}">
+              <div style="position:absolute;left:6%;top:6%;width:64%;height:60%;border:3px solid oklch(75% 0.005 95);border-radius:2px"></div>
+
+              <sc-for list="{{ sceneElements }}" as="el" hint-placeholder-count="8">
+                <div onClick="{{ el.onSelect }}" style="position:absolute;left:{{ el.x }}%;top:{{ el.y }}%;width:{{ el.w }}%;height:{{ el.h }}%;background:{{ el.fill }};opacity:{{ el.opacity }};border-radius:{{ el.radius }}px;cursor:pointer;box-shadow:{{ el.shadow }};transition:opacity 0.4s,background 0.4s,box-shadow 0.4s"></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;overflow-y:auto;padding:24px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px">
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:18px">
+              <div style="font-size:12px;color:oklch(55% 0.01 95);margin-bottom:6px">Elementy ogółem</div>
+              <div style="font-size:26px;font-weight:700">{{ dashboard.total }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:18px">
+              <div style="font-size:12px;color:oklch(55% 0.01 95);margin-bottom:6px">Oczekujące</div>
+              <div style="font-size:26px;font-weight:700;color:oklch(45% 0.16 25)">{{ dashboard.pending }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:18px">
+              <div style="font-size:12px;color:oklch(55% 0.01 95);margin-bottom:6px">Zaakceptowane</div>
+              <div style="font-size:26px;font-weight:700;color:oklch(45% 0.1 150)">{{ dashboard.accepted }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:18px">
+              <div style="font-size:12px;color:oklch(55% 0.01 95);margin-bottom:6px">Odrzucone</div>
+              <div style="font-size:26px;font-weight:700;color:oklch(50% 0.01 95)">{{ dashboard.rejected }}</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:20px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:16px">Liczba podejrzanych elementów wg typu</div>
+              <sc-for list="{{ dashboard.typeBars }}" as="bar" hint-placeholder-count="5">
+                <div style="margin-bottom:12px">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                    <span style="color:oklch(35% 0.01 95)">{{ bar.type }}</span>
+                    <span style="font-weight:600;color:oklch(35% 0.01 95)">{{ bar.count }}</span>
+                  </div>
+                  <div style="height:8px;border-radius:4px;background:oklch(94% 0.003 95);overflow:hidden">
+                    <div style="height:100%;width:{{ bar.pct }}%;background:oklch(55% 0.19 25)"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="background:#fff;border:1px solid oklch(90% 0.005 95);border-radius:12px;padding:20px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:16px">Postęp weryfikacji</div>
+              <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:16px">
+                <div style="width:{{ dashboard.acceptedPct }}%;background:oklch(60% 0.12 150)"></div>
+                <div style="width:{{ dashboard.rejectedPct }}%;background:oklch(80% 0.005 95)"></div>
+                <div style="width:{{ dashboard.pendingPct }}%;background:oklch(55% 0.19 25)"></div>
+              </div>
+              <div style="font-size:12px;color:oklch(50% 0.01 95);margin-bottom:8px">Średnia pewność modelu: <strong style="color:oklch(30% 0.01 95)">{{ dashboard.avgConfidence }}%</strong></div>
+              <div style="font-size:12px;color:oklch(50% 0.01 95)">Ręcznie zapisane klasyfikacje: <strong style="color:oklch(30% 0.01 95)">{{ dashboard.savedManual }}</strong> / {{ dashboard.total }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showListView }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;overflow-y:auto;padding:24px">
+          <table style="width:100%;table-layout:fixed;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid oklch(90% 0.005 95)">
+            <thead>
+              <tr style="background:oklch(96% 0.003 95)">
+                <th style="width:14%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">Element</th>
+                <th style="width:9%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">GUID</th>
+                <th style="width:13%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">Klasyfikacja</th>
+                <th style="width:9%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">Pewność</th>
+                <th style="width:10%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">Status</th>
+                <th style="width:22%;text-align:left;padding:10px 8px;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:0.02em;color:oklch(50% 0.01 95)">Popraw klasyfikację</th>
+                <th style="width:14%;padding:10px 8px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ elements }}" as="item" hint-placeholder-count="8">
+                <tr style="border-top:1px solid oklch(93% 0.005 95)">
+                  <td style="padding:10px 8px;overflow:hidden">
+                    <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.name }}</div>
+                    <div style="font-size:10px;color:oklch(55% 0.01 95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ item.type }}</div>
+                  </td>
+                  <td style="padding:10px 8px;font-family:monospace;font-size:10px;color:oklch(50% 0.01 95);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.guidShort }}</td>
+                  <td style="padding:10px 8px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    <span style="color:oklch(50% 0.01 95)">{{ item.current }}</span> → <span style="color:oklch(45% 0.16 25);font-weight:700">{{ item.suggested }}</span>
+                  </td>
+                  <td style="padding:10px 8px;font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap">{{ item.confidence }}%</td>
+                  <td style="padding:10px 8px;overflow:hidden;white-space:nowrap">
+                    <sc-if value="{{ item.statusLabel }}">
+                      <span style="font-size:9px;font-weight:700;padding:3px 5px;border-radius:8px;background:{{ item.statusBg }};color:{{ item.statusColor }};white-space:nowrap">{{ item.statusLabel }}</span>
+                    </sc-if>
+                  </td>
+                  <td style="padding:10px 8px;overflow:hidden">
+                    <div style="display:flex;align-items:center;gap:3px">
+                      <select value="{{ item.manualType }}" onChange="{{ item.onManualTypeChange }}" style="min-width:0;flex:1;font-size:10px;padding:5px 2px;border-radius:6px;border:1px solid oklch(85% 0.005 95);background:#fff;color:oklch(30% 0.01 95)">
+                        <sc-for list="{{ item.typeOptions }}" as="opt" hint-placeholder-count="3">
+                          <option value="{{ opt.value }}">{{ opt.label }}</option>
+                        </sc-for>
+                      </select>
+                      <button onClick="{{ item.onSaveManual }}" style="flex:none;font-size:9px;font-weight:600;padding:5px 5px;border-radius:6px;border:1px solid oklch(85% 0.005 95);background:{{ item.savedBg }};color:oklch(35% 0.01 95);cursor:pointer;white-space:nowrap">{{ item.savedLabel }}</button>
+                    </div>
+                  </td>
+                  <td style="padding:10px 8px;overflow:hidden">
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <button onClick="{{ item.onAccept }}" style="font-size:10px;font-weight:600;padding:4px 6px;border-radius:6px;border:1px solid oklch(20% 0.01 95);background:oklch(20% 0.01 95);color:#fff;cursor:pointer;white-space:nowrap">Akceptuj</button>
+                      <button onClick="{{ item.onReject }}" style="font-size:10px;font-weight:600;padding:4px 6px;border-radius:6px;border:1px solid oklch(85% 0.005 95);background:#fff;color:oklch(35% 0.01 95);cursor:pointer;white-space:nowrap">Odrzuć</button>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <sc-if value="{{ showDetailPanel }}" hint-placeholder-val="{{ false }}">
+      <div style="width:320px;flex:none;border-left:1px solid oklch(90% 0.005 95);background:#fff;padding:20px;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:oklch(45% 0.01 95)">Szczegóły elementu</div>
+          <div onClick="{{ closeDetail }}" style="cursor:pointer;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:oklch(55% 0.01 95);font-size:16px" style-hover="background:oklch(95% 0.003 95)">×</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:36px;height:36px;border-radius:9px;background:{{ selected.color }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:oklch(30% 0.02 95)">{{ selected.abbr }}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">{{ selected.name }}</div>
+            <div style="font-size:11px;font-family:monospace;color:oklch(55% 0.01 95)">{{ selected.guid }}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="flex:1;padding:10px 12px;border-radius:8px;background:oklch(96% 0.003 95);text-align:center">
+            <div style="font-size:10px;color:oklch(55% 0.01 95);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px">Obecna</div>
+            <div style="font-size:13px;font-weight:700">{{ selected.current }}</div>
+          </div>
+          <div style="font-size:16px;color:oklch(70% 0.01 95)">→</div>
+          <div style="flex:1;padding:10px 12px;border-radius:8px;background:oklch(94% 0.05 25);text-align:center">
+            <div style="font-size:10px;color:oklch(45% 0.16 25);text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px">Sugerowana</div>
+            <div style="font-size:13px;font-weight:700;color:oklch(45% 0.16 25)">{{ selected.suggested }}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:oklch(50% 0.01 95);margin-bottom:6px">
+            <span>Pewność modelu</span><span style="font-weight:700;color:oklch(35% 0.01 95)">{{ selected.confidence }}%</span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:oklch(92% 0.005 95);overflow:hidden">
+            <div style="height:100%;width:{{ selected.confidence }}%;background:oklch(55% 0.19 25)"></div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;line-height:1.6;color:oklch(40% 0.01 95);background:oklch(97% 0.002 95);border-radius:8px;padding:12px;margin-bottom:20px">{{ selected.reason }}</div>
+
+        <div style="margin-bottom:20px;padding:12px;border-radius:8px;border:1px solid oklch(93% 0.005 95)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;color:oklch(50% 0.01 95);margin-bottom:8px">Popraw klasyfikację ręcznie</div>
+          <div style="display:flex;gap:8px">
+            <select value="{{ selected.manualType }}" onChange="{{ selected.onManualTypeChange }}" style="flex:1;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid oklch(85% 0.005 95);background:#fff;color:oklch(30% 0.01 95)">
+              <sc-for list="{{ selected.typeOptions }}" as="opt" hint-placeholder-count="3">
+                <option value="{{ opt.value }}">{{ opt.label }}</option>
+              </sc-for>
+            </select>
+            <button onClick="{{ selected.onSaveManual }}" style="flex:none;font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid oklch(20% 0.01 95);background:{{ selected.savedBg }};color:oklch(20% 0.01 95);cursor:pointer">{{ selected.savedLabel }}</button>
+          </div>
+        </div>
+
+        <sc-if value="{{ selected.statusLabel }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:10px;border-radius:8px;background:{{ selected.statusBg }};color:{{ selected.statusColor }};font-size:13px;font-weight:700;margin-bottom:8px">{{ selected.statusLabel }}</div>
+        </sc-if>
+
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ selected.onAccept }}" style="flex:1;padding:10px;border-radius:8px;border:1px solid oklch(20% 0.01 95);background:oklch(20% 0.01 95);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Akceptuj sugestię</button>
+          <button onClick="{{ selected.onReject }}" style="flex:1;padding:10px;border-radius:8px;border:1px solid oklch(85% 0.005 95);background:#fff;color:oklch(35% 0.01 95);font-size:13px;font-weight:600;cursor:pointer">Odrzuć</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const IFC_TYPES = ['IfcWall', 'IfcCurtainWall', 'IfcColumn', 'IfcBeam', 'IfcSlab', 'IfcRoof', 'IfcDoor', 'IfcWindow', 'IfcRailing', 'IfcStair', 'IfcRamp', 'IfcFooting', 'IfcMember', 'IfcPlate'];
+
+const MOCK_ELEMENTS = [
+  { id: 'e1', type: 'IfcWall', name: 'Ściana zewnętrzna — segment 12', current: 'IfcWall', suggested: 'IfcCurtainWall', confidence: 87, guid: '1qE3$xR9L8bPz_hK2m0aQf', color: '#c9d3dc', x: 6, y: 6, w: 64, h: 4, radius: 1, reason: 'Geometria i proporcje elementu wskazują na dużą powierzchnię przeszklenia — typową dla ściany osłonowej.' },
+  { id: 'e2', type: 'IfcColumn', name: 'Słup konstrukcyjny C-14', current: 'IfcColumn', suggested: 'IfcBeam', confidence: 76, guid: '3FqX9vY_2NzT8pL$oW1cRe', color: '#b8c4ce', x: 14, y: 18, w: 4, h: 4, radius: 1, reason: 'Wykryty profil przekroju i pozioma orientacja elementu sugerują element belkowy, nie słup.' },
+  { id: 'e3', type: 'IfcDoor', name: 'Drzwi wewnętrzne D-03', current: 'IfcDoor', suggested: 'IfcWindow', confidence: 91, guid: '0kM7bT$aP4xVn_2LqZ9oCw', color: '#d8c9a3', x: 38, y: 6, w: 6, h: 3, radius: 1, reason: 'Proporcje otworu i brak progu podłogowego wskazują raczej na okno niż drzwi.' },
+  { id: 'e4', type: 'IfcSlab', name: 'Płyta stropowa P2', current: 'IfcSlab', suggested: 'IfcRoof', confidence: 68, guid: '2hR8$mN0xQaT_9vLpK3bWf', color: '#e2e6ea', x: 6, y: 34, w: 64, h: 32, radius: 2, reason: 'Nachylenie powierzchni i lokalizacja na najwyższej kondygnacji sugerują dach, nie strop.' },
+  { id: 'e5', type: 'IfcBeam', name: 'Belka stropowa B-22', current: 'IfcBeam', suggested: 'IfcColumn', confidence: 82, guid: '4TqW1$oX8bLn_0aPzR6mYv', color: '#c4d0c9', x: 74, y: 18, w: 12, h: 3, radius: 1, reason: 'Pionowa orientacja elementu i punkt podparcia wskazują na słup, nie belkę.' },
+  { id: 'e6', type: 'IfcWindow', name: 'Okno elewacyjne W-07', current: 'IfcWindow', suggested: 'IfcDoor', confidence: 73, guid: '9pL0$aK3xTn_7hQzM2bWre', color: '#a9c8dc', x: 6, y: 46, w: 3, h: 10, radius: 1, reason: 'Element sięga poziomu posadzki — charakterystyczne dla drzwi balkonowych.' },
+  { id: 'e7', type: 'IfcRailing', name: 'Balustrada klatki schodowej', current: 'IfcRailing', suggested: 'IfcWall', confidence: 65, guid: '6xN2$pT9bLa_1oQzK8mWfr', color: '#cfc4d8', x: 78, y: 46, w: 3, h: 16, radius: 1, reason: 'Pełna, nieprzeźroczysta geometria bez przerw wskazuje na ścianę, nie balustradę.' },
+  { id: 'e8', type: 'IfcStair', name: 'Schody — klatka B', current: 'IfcStair', suggested: 'IfcRamp', confidence: 79, guid: '5aQ8$xM1bTn_3oPzL0vWre', color: '#d8b8b0', x: 68, y: 58, w: 12, h: 10, radius: 1, reason: 'Stały kąt nachylenia i brak wyodrębnionych stopni w geometrii sugerują pochylnię, nie schody.' }
+];
+
+class Component extends DCLogic {
+  state = {
+    fileName: null,
+    loading: false,
+    elements: null,
+    selectedId: null,
+    viewMode: '3d'
+  };
+
+  setManualType = (id, value) => {
+    this.setState(s => ({
+      elements: s.elements.map(e => e.id === id ? { ...e, manualType: value, savedManual: false } : e)
+    }));
+  };
+
+  saveManualClassification = (id) => {
+    this.setState(s => ({
+      elements: s.elements.map(e => e.id === id ? { ...e, savedManual: true } : e)
+    }));
+  };
+
+  fileInputRef = React.createRef();
+
+  triggerFileInput = () => {
+    if (this.fileInputRef.current) this.fileInputRef.current.click();
+  };
+
+  onFileChosen = (e) => {
+    const file = e.target.files && e.target.files[0];
+    this.startLoad(file ? file.name : null);
+  };
+
+  startLoad = (name) => {
+    this.setState({ loading: true, fileName: name || 'budynek_A_kondygnacja_2.ifc', elements: null, selectedId: null });
+    setTimeout(() => {
+      this.setState({
+        loading: false,
+        elements: MOCK_ELEMENTS.map(e => ({ ...e, status: 'pending', manualType: e.suggested, savedManual: false }))
+      });
+    }, 900);
+  };
+
+  selectElement = (id) => {
+    this.setState(s => ({ selectedId: s.selectedId === id ? null : id }));
+  };
+
+  closeDetail = () => this.setState({ selectedId: null });
+
+  setStatus = (id, status) => {
+    this.setState(s => ({
+      elements: s.elements.map(e => e.id === id ? { ...e, status } : e)
+    }));
+  };
+
+  setView3d = () => this.setState({ viewMode: '3d' });
+  setViewList = () => this.setState({ viewMode: 'list', selectedId: null });
+
+  renderVals() {
+    const { fileName, loading, elements, selectedId, viewMode } = this.state;
+    const fileLoaded = !!elements;
+    const isEmpty = !fileLoaded && !loading;
+
+    const selectedRaw = elements ? elements.find(e => e.id === selectedId) : null;
+    const anySelected = !!selectedRaw;
+
+    const statusMeta = (status) => {
+      if (status === 'accepted') return { statusLabel: 'Zaakceptowano', statusBg: 'oklch(93% 0.01 150)', statusColor: 'oklch(45% 0.1 150)' };
+      if (status === 'rejected') return { statusLabel: 'Odrzucono', statusBg: 'oklch(93% 0.003 95)', statusColor: 'oklch(50% 0.01 95)' };
+      return { statusLabel: null, statusBg: null, statusColor: null };
+    };
+
+    const abbr = (type) => type.replace('Ifc', '').slice(0, 2).toUpperCase();
+
+    const mapItem = (e) => {
+      const meta = statusMeta(e.status);
+      return {
+        ...e,
+        abbr: abbr(e.type),
+        guidShort: e.guid.slice(0, 10) + '…',
+        rowBg: e.id === selectedId ? 'oklch(96% 0.03 25)' : '#fff',
+        rowBorder: e.id === selectedId ? 'oklch(80% 0.08 25)' : 'oklch(93% 0.005 95)',
+        rowOpacity: e.status === 'pending' ? 1 : 0.55,
+        ...meta,
+        onSelect: () => this.selectElement(e.id),
+        onAccept: () => this.setStatus(e.id, 'accepted'),
+        onReject: () => this.setStatus(e.id, 'rejected'),
+        typeOptions: IFC_TYPES.map(t => ({ value: t, label: t })),
+        onManualTypeChange: (ev) => this.setManualType(e.id, ev.target.value),
+        onSaveManual: () => this.saveManualClassification(e.id),
+        savedLabel: e.savedManual ? '✓' : 'Zapisz',
+        savedBg: e.savedManual ? 'oklch(93% 0.01 150)' : '#fff'
+      };
+    };
+
+    const uiElements = elements ? elements.map(mapItem) : [];
+    const pendingCount = elements ? elements.filter(e => e.status === 'pending').length : 0;
+
+    let dashboard = null;
+    if (elements) {
+      const total = elements.length;
+      const accepted = elements.filter(e => e.status === 'accepted').length;
+      const rejected = elements.filter(e => e.status === 'rejected').length;
+      const pending = total - accepted - rejected;
+      const savedManual = elements.filter(e => e.savedManual).length;
+      const avgConfidence = Math.round(elements.reduce((s, e) => s + e.confidence, 0) / total);
+      const typeCounts = {};
+      elements.forEach(e => { typeCounts[e.type] = (typeCounts[e.type] || 0) + 1; });
+      const maxTypeCount = Math.max(...Object.values(typeCounts));
+      const typeBars = Object.keys(typeCounts).map(t => ({
+        type: t,
+        count: typeCounts[t],
+        pct: Math.round((typeCounts[t] / maxTypeCount) * 100)
+      }));
+      dashboard = {
+        total, accepted, rejected, pending, savedManual, avgConfidence,
+        acceptedPct: Math.round((accepted / total) * 100),
+        rejectedPct: Math.round((rejected / total) * 100),
+        pendingPct: Math.round((pending / total) * 100),
+        typeBars
+      };
+    }
+
+    const sceneElements = elements ? elements.map(e => {
+      const isSel = e.id === selectedId;
+      return {
+        ...e,
+        fill: isSel ? 'oklch(55% 0.19 25)' : e.color,
+        opacity: anySelected ? (isSel ? 1 : 0.12) : 1,
+        shadow: isSel ? '0 0 0 4px oklch(90% 0.08 25), 0 4px 16px oklch(55% 0.19 25 / 0.4)' : 'none',
+        onSelect: () => this.selectElement(e.id)
+      };
+    }) : [];
+
+    const cx = selectedRaw ? selectedRaw.x + selectedRaw.w / 2 : 50;
+    const cy = selectedRaw ? selectedRaw.y + selectedRaw.h / 2 : 50;
+
+    const selected = selectedRaw ? {
+      ...mapItem(selectedRaw),
+      onAccept: () => this.setStatus(selectedRaw.id, 'accepted'),
+      onReject: () => this.setStatus(selectedRaw.id, 'reject' === '' ? '' : 'rejected')
+    } : null;
+
+    return {
+      fileName,
+      loading,
+      fileLoaded,
+      isEmpty,
+      elements: uiElements,
+      sceneElements,
+      selected,
+      pendingCount,
+      fileInputRef: this.fileInputRef,
+      triggerFileInput: this.triggerFileInput,
+      onFileChosen: this.onFileChosen,
+      closeDetail: this.closeDetail,
+      show3d: fileLoaded && viewMode === '3d',
+      showListView: fileLoaded && viewMode === 'list',
+      showDashboard: fileLoaded && viewMode === 'dashboard',
+      showDetailPanel: !!(selected && viewMode === '3d'),
+      dashboard,
+      viewBtn3dBg: viewMode === '3d' ? '#fff' : 'transparent',
+      viewBtn3dColor: viewMode === '3d' ? 'oklch(20% 0.01 95)' : 'oklch(55% 0.01 95)',
+      viewBtnListBg: viewMode === 'list' ? '#fff' : 'transparent',
+      viewBtnListColor: viewMode === 'list' ? 'oklch(20% 0.01 95)' : 'oklch(55% 0.01 95)',
+      viewBtnDashBg: viewMode === 'dashboard' ? '#fff' : 'transparent',
+      viewBtnDashColor: viewMode === 'dashboard' ? 'oklch(20% 0.01 95)' : 'oklch(55% 0.01 95)',
+      setView3d: this.setView3d,
+      setViewList: this.setViewList,
+      setViewDashboard: () => this.setState({ viewMode: 'dashboard', selectedId: null }),
+      cameraOrigin: `${cx}% ${cy}%`,
+      cameraTransform: anySelected ? 'scale(2.3)' : 'scale(1)'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

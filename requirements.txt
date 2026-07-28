@@ -9,3 +9,6 @@ joblib
 tqdm
 jupyter
 ipykernel
+pytest
+fastapi
+httpx

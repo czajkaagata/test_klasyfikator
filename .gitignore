@@ -1,7 +1,6 @@
 # baza danych IFC (surowe pliki .ifc, ~480 MB) - nie commitujemy
-IFCNetCoreIFC/
+data/raw/IFCNetCoreIFC/
 IFCNetCoreIFC.zip
-reports/
 # srodowisko wirtualne
 .venv/
 
@@ -9,8 +8,12 @@ reports/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-*.csv
+.pytest_cache/
+data/processed/*.csv
 *.html
+!frontend/index.html
+!design_handoff_ifc_classifier/*.html
+!reports/prezentacja.html
 
 # frontend (Vite/React)
 frontend/node_modules/
