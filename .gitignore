@@ -13,6 +13,7 @@ data/processed/*.csv
 *.html
 !frontend/index.html
 !design_handoff_ifc_classifier/*.html
+!Prezentacja/*.html
 
 # frontend (Vite/React)
 frontend/node_modules/
