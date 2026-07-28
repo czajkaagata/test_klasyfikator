@@ -171,9 +171,11 @@ integrated in `backend/app.py`, gives feature importances for
 interpretability) even though it's neither the most accurate nor the most
 efficient model — a conscious trade-off documented in
 `models/metadata.json` and the notebook's "Green IT" section. See
-`reports/prezentacja/prezentacja.html` (open directly in a browser,
-arrow-key/swipe navigation) for the full write-up (slides 10-11) — source
-content also kept as `reports/prezentacja/prezentacja.md`.
+`../Prezentacja/prezentacja.html` (one level up from this repo, open
+directly in a browser, arrow-key/swipe navigation) for the full write-up
+(slides 10-11) — source content also kept as
+`../Prezentacja/prezentacja.md`. Not part of this repo (lives alongside it
+on disk), so it isn't tracked in git here.
 
 ## Testing
 
@@ -208,8 +210,8 @@ backend/Dockerfile             container image for the backend service
 frontend/                      React + Three.js review app (real IFC 3D viewer, wired to backend/)
 tests/                         pytest suite (feature/geometry unit tests + backend API tests)
 config.yaml                    centralized parameters (random_state, model hyperparameters, tuning grid)
-reports/prezentacja/prezentacja.html   project presentation, browser slide deck (open directly, no server needed)
-reports/prezentacja/prezentacja.md     same content as plain Markdown (source / GitHub-readable)
+../Prezentacja/prezentacja.html        project presentation, browser slide deck (outside repo, open directly, no server needed)
+../Prezentacja/prezentacja.md          same content as plain Markdown (outside repo, source / readable)
 ```
 
 ## Review app (backend + frontend)
